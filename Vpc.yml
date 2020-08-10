@@ -1,0 +1,339 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Infrastructure setup"
+
+Parameters:
+  Project:
+    Type: "String"
+    Default: "web"
+  Environment:
+    Type: "String"
+    Default: "dev"
+    AllowedValues:
+      - "dev"
+      - "prod"
+
+
+Mappings:
+  Subnets:
+    VpcSubnet:
+      Ipv4Cidr1stOctet: "172"
+      Ipv4Cidr2ndOctet: "12"
+      Ipv4Cidr: "16"
+    PublicSubnetOne:
+      Ipv4Cidr3rdOctet: "0"
+    PublicSubnetTwo:
+      Ipv4Cidr3rdOctet: "1"
+    PublicSubnetThree:
+      Ipv4Cidr3rdOctet: "2"
+    PrivateSubnetOne:
+      Ipv4Cidr3rdOctet: "16"
+    PrivateSubnetTwo:
+      Ipv4Cidr3rdOctet: "17"
+    PrivateSubnetThree:
+      Ipv4Cidr3rdOctet: "18"
+    EnabledAccessCidrBlock:
+      Ipv4CidrBlock: "0.0.0.0/0"
+  Regions:
+    ap-northeast-1:
+      RegionName: "Tokyo Region"
+    us-east-1:
+      RegionName: "Virginia Region"
+
+
+Resources:
+  VPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      CidrBlock: !Sub
+        - "${1stOctet}.${2ndOctet}.0.0/${Ipv4Cidr}"
+        - 1stOctet: !FindInMap [ "Subnets", "VpcSubnet", "Ipv4Cidr1stOctet" ]
+          2ndOctet: !FindInMap [ "Subnets", "VpcSubnet", "Ipv4Cidr2ndOctet"]
+          Ipv4Cidr: !FindInMap [ "Subnets", "VpcSubnet", "Ipv4Cidr"]
+      InstanceTenancy: "default"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-vpc-id"
+
+  PublicSubnetOne:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select
+          - 0
+          - Fn::GetAZs: !Ref "AWS::Region"
+      VpcId: !Ref "VPC"
+      CidrBlock: !Sub
+        - "${1stOctet}.${2ndOctet}.${3rdOctet}.0/24"
+        - 1stOctet: !FindInMap [ "Subnets", "VpcSubnet", "Ipv4Cidr1stOctet" ]
+          2ndOctet: !FindInMap [ "Subnets", "VpcSubnet", "Ipv4Cidr2ndOctet"]
+          3rdOctet: !FindInMap [ "Subnets", "PublicSubnetOne", "Ipv4Cidr3rdOctet"]
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-pub-1"
+
+  PublicSubnetTwo:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - Fn::GetAZs: !Ref "AWS::Region"
+      VpcId: !Ref "VPC"
+      CidrBlock: !Sub
+        - "${1stOctet}.${2ndOctet}.${3rdOctet}.0/24"
+        - 1stOctet: !FindInMap [ "Subnets", "VpcSubnet", "Ipv4Cidr1stOctet" ]
+          2ndOctet: !FindInMap [ "Subnets", "VpcSubnet", "Ipv4Cidr2ndOctet"]
+          3rdOctet: !FindInMap [ "Subnets", "PublicSubnetTwo", "Ipv4Cidr3rdOctet"]
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-pub-2"
+
+  PublicSubnetThree:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+        - 2
+        - Fn::GetAZs: !Ref "AWS::Region"
+      VpcId: !Ref "VPC"
+      CidrBlock: !Sub
+        - "${1stOctet}.${2ndOctet}.${3rdOctet}.0/24"
+        - 1stOctet: !FindInMap [ "Subnets", "VpcSubnet", "Ipv4Cidr1stOctet" ]
+          2ndOctet: !FindInMap [ "Subnets", "VpcSubnet", "Ipv4Cidr2ndOctet"]
+          3rdOctet: !FindInMap [ "Subnets", "PublicSubnetThree", "Ipv4Cidr3rdOctet"]
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-pub-3"
+
+  PublicRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref "VPC"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-pub-rtb"
+
+  PublicSubnetOneRouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref "PublicRouteTable"
+      SubnetId: !Ref "PublicSubnetOne"
+
+  PublicSubnetTwoRouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref "PublicRouteTable"
+      SubnetId: !Ref "PublicSubnetTwo"
+
+  PublicSubnetThreeRouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref "PublicRouteTable"
+      SubnetId: !Ref "PublicSubnetThree"
+
+
+  PrivateSubnetOne:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref "AWS::Region"
+      VpcId: !Ref "VPC"
+      CidrBlock: !Sub
+        - "${1stOctet}.${2ndOctet}.${3rdOctet}.0/24"
+        - 1stOctet: !FindInMap [ "Subnets", "VpcSubnet", "Ipv4Cidr1stOctet" ]
+          2ndOctet: !FindInMap [ "Subnets", "VpcSubnet", "Ipv4Cidr2ndOctet"]
+          3rdOctet: !FindInMap [ "Subnets", "PrivateSubnetOne", "Ipv4Cidr3rdOctet"]
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-prv-1"
+
+  PrivateSubnetTwo:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - Fn::GetAZs: !Ref "AWS::Region"
+      VpcId: !Ref "VPC"
+      CidrBlock: !Sub
+        - "${1stOctet}.${2ndOctet}.${3rdOctet}.0/24"
+        - 1stOctet: !FindInMap [ "Subnets", "VpcSubnet", "Ipv4Cidr1stOctet" ]
+          2ndOctet: !FindInMap [ "Subnets", "VpcSubnet", "Ipv4Cidr2ndOctet"]
+          3rdOctet: !FindInMap [ "Subnets", "PrivateSubnetTwo", "Ipv4Cidr3rdOctet"]
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-prv-2"
+
+  PrivateSubnetThree:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select
+        - 2
+        - Fn::GetAZs: !Ref "AWS::Region"
+      VpcId: !Ref "VPC"
+      CidrBlock: !Sub
+        - "${1stOctet}.${2ndOctet}.${3rdOctet}.0/24"
+        - 1stOctet: !FindInMap [ "Subnets", "VpcSubnet", "Ipv4Cidr1stOctet" ]
+          2ndOctet: !FindInMap [ "Subnets", "VpcSubnet", "Ipv4Cidr2ndOctet"]
+          3rdOctet: !FindInMap [ "Subnets", "PrivateSubnetThree", "Ipv4Cidr3rdOctet"]
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-prv-3"
+
+  PrivateRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref "VPC"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-prv-rtb"
+
+  PrivateSubnetOneRouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref "PrivateRouteTable"
+      SubnetId: !Ref "PrivateSubnetOne"
+
+  PrivateSubnetTwoRouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref "PrivateRouteTable"
+      SubnetId: !Ref "PrivateSubnetTwo"
+
+  PrivateSubnetThreeRouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref "PrivateRouteTable"
+      SubnetId: !Ref "PrivateSubnetThree"
+
+
+  VPCInternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-igw"
+
+  IgwAttachment:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      VpcId: !Ref "VPC"
+      InternetGatewayId: !Ref "VPCInternetGateway"
+
+  PublicRouteToInternet:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId: !Ref "PublicRouteTable"
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref "VPCInternetGateway"
+
+
+  NatGatewayEIPOne:
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: "vpd"
+
+  NatGatewayOne:
+    Type: "AWS::EC2::NatGateway"
+    Properties:
+      AllocationId: !GetAtt "NatGatewayEIPOne.AllocationId"
+      SubnetId: !Ref "PublicSubnetOne"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-ntgw-1"
+
+  PrivateRouteToNatGatewayOne:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId: !Ref "PrivateRouteTable"
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref "NatGatewayOne"
+
+#  NatGatewayEIPTwo:
+#    Type: "AWS::EC2::EIP"
+#    Properties:
+#      Domain: "vpd"
+#
+#  NatGatewayTwo:
+#    Type: "AWS::EC2::NatGateway"
+#    Properties:
+#      AllocationId: !GetAtt "NatGatewayEIPTwo.AllocationId"
+#      SubnetId: !Ref "PublicSubnetTwo"
+#      Tags:
+#        - Key: "Name"
+#          Value: !Sub "${Project}-${Environment}-ntgw-2"
+#
+#  PrivateRouteToNatGatewayTwo:
+#    Type: "AWS::EC2::Route"
+#    Properties:
+#      RouteTableId: !Ref "PrivateRouteTable"
+#      DestinationCidrBlock: "0.0.0.0/0"
+#      NatGatewayId: !Ref "NatGatewayTwo"
+#
+#  NatGatewayEIPThree:
+#    Type: "AWS::EC2::EIP"
+#    Properties:
+#      Domain: "vpd"
+#
+#  NatGatewayThree:
+#    Type: "AWS::EC2::NatGateway"
+#    Properties:
+#      AllocationId: !GetAtt "NatGatewayEIPThree.AllocationId"
+#      SubnetId: !Ref "PublicSubnetTwo"
+#      Tags:
+#        - Key: "Name"
+#          Value: !Sub "${Project}-${Environment}-ntgw-3"
+#
+#  PrivateRouteToNatGatewayThree:
+#    Type: "AWS::EC2::Route"
+#    Properties:
+#      RouteTableId: !Ref "PrivateRouteTable"
+#      DestinationCidrBlock: "0.0.0.0/0"
+#      NatGatewayId: !Ref "NatGatewayThree"
+
+
+Outputs:
+  VpcId:
+    Value: !Ref "VPC"
+    Export:
+      Name: !Sub "${Project}-${Environment}-vpc-id"
+
+  VpcCidrBlock:
+    Value: !GetAtt "VPC.CidrBlock"
+    Export:
+      Name: !Sub "${Project}-${Environment}-vpc-cidr"
+
+  PublicSubnetOneId:
+    Value: !Ref "PublicSubnetOne"
+    Export:
+      Name: !Sub "${Project}-${Environment}-pub-subnet-1-id"
+
+  PublicSubnetTwoId:
+    Value: !Ref "PublicSubnetTwo"
+    Export:
+      Name: !Sub "${Project}-${Environment}-pub-subnet-2-id"
+
+  PublicSubnetThreeId:
+    Value: !Ref "PublicSubnetThree"
+    Export:
+      Name: !Sub "${Project}-${Environment}-pub-subnet-3-id"
+
+  PrivsteSubnetOneId:
+    Value: !Ref "PrivateSubnetOne"
+    Export:
+      Name: !Sub "${Project}-${Environment}-prv-subnet-1-id"
+
+  PrivateSubnetTwoId:
+    Value: !Ref "PrivateSubnetTwo"
+    Export:
+      Name: !Sub "${Project}-${Environment}-prv-subnet-2-id"
+
+  PrivateSubnetThreeId:
+    Value: !Ref "PrivateSubnetThree"
+    Export:
+      Name: !Sub "${Project}-${Environment}-prv-subnet-3-id"
+
+  EnabledAccessCidrBlock:
+    Value: !FindInMap [ "Subnets",  "EnabledAccessCidrBlock", "Ipv4CidrBlock"]
+    Export:
+      Name: "access-cidr-block"
