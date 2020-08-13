@@ -249,47 +249,47 @@ Resources:
       DestinationCidrBlock: "0.0.0.0/0"
       NatGatewayId: !Ref "NatGatewayOne"
 
-#  NatGatewayEIPTwo:
-#    Type: "AWS::EC2::EIP"
-#    Properties:
-#      Domain: "vpd"
-#
-#  NatGatewayTwo:
-#    Type: "AWS::EC2::NatGateway"
-#    Properties:
-#      AllocationId: !GetAtt "NatGatewayEIPTwo.AllocationId"
-#      SubnetId: !Ref "PublicSubnetTwo"
-#      Tags:
-#        - Key: "Name"
-#          Value: !Sub "${Project}-${Environment}-ntgw-2"
-#
-#  PrivateRouteToNatGatewayTwo:
-#    Type: "AWS::EC2::Route"
-#    Properties:
-#      RouteTableId: !Ref "PrivateRouteTable"
-#      DestinationCidrBlock: "0.0.0.0/0"
-#      NatGatewayId: !Ref "NatGatewayTwo"
-#
-#  NatGatewayEIPThree:
-#    Type: "AWS::EC2::EIP"
-#    Properties:
-#      Domain: "vpd"
-#
-#  NatGatewayThree:
-#    Type: "AWS::EC2::NatGateway"
-#    Properties:
-#      AllocationId: !GetAtt "NatGatewayEIPThree.AllocationId"
-#      SubnetId: !Ref "PublicSubnetTwo"
-#      Tags:
-#        - Key: "Name"
-#          Value: !Sub "${Project}-${Environment}-ntgw-3"
-#
-#  PrivateRouteToNatGatewayThree:
-#    Type: "AWS::EC2::Route"
-#    Properties:
-#      RouteTableId: !Ref "PrivateRouteTable"
-#      DestinationCidrBlock: "0.0.0.0/0"
-#      NatGatewayId: !Ref "NatGatewayThree"
+  NatGatewayEIPTwo:
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: "vpd"
+
+  NatGatewayTwo:
+    Type: "AWS::EC2::NatGateway"
+    Properties:
+      AllocationId: !GetAtt "NatGatewayEIPTwo.AllocationId"
+      SubnetId: !Ref "PublicSubnetTwo"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-ntgw-2"
+
+  PrivateRouteToNatGatewayTwo:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId: !Ref "PrivateRouteTable"
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref "NatGatewayTwo"
+
+  NatGatewayEIPThree:
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: "vpd"
+
+  NatGatewayThree:
+    Type: "AWS::EC2::NatGateway"
+    Properties:
+      AllocationId: !GetAtt "NatGatewayEIPThree.AllocationId"
+      SubnetId: !Ref "PublicSubnetTwo"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-ntgw-3"
+
+  PrivateRouteToNatGatewayThree:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId: !Ref "PrivateRouteTable"
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref "NatGatewayThree"
 
 
 Outputs:

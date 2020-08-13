@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Infrastructure setup"
+
+Parameters:
+  Project:
+    Type: "String"
+    Default: "web"
+  Environment:
+    Type: "String"
+    Default: "dev"
+    AllowedValues:
+      - "dev"
+      - "prod"
+
+Resources:
+  # IAM Role
+  IAMRoleForWebEC2:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "ec2.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Description: "A role require for Managed Instances."
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonSSMMaintenanceWindowRole"
+        - "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+        - "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+      RoleName: !Sub "${Project}-${Environment}-AWSEc2Role-${AWS::Region}"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-ec2-iam-role"
+
+  IAMRoleForVPCFlowLog:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "vpc-flow-logs.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Description: "A role required for VPC FlowLog"
+      Policies:
+        - PolicyName: !Sub "${Project}-${Environment}-AWSVPCFlowLogCloudWatchAccess-${AWS::Region}"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "logs:DescribeLogGroups"
+                  - "logs:DescribeLogStreams"
+                Resource: "*"
+      RoleName: !Sub "${Project}-${Environment}-AWSVPCFlowLogRole-${AWS::Region}"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-vpc-flow-log-role"
+
+  # InstanceProfile
+  IAMInstanceProfileForIAMRoleForEC2:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      InstanceProfileName: !Ref "IAMRoleForWebEC2"
+      Roles:
+        - !Ref "IAMRoleForWebEC2"
+
+Outputs:
+  IAMRoleForWebEC2Arn:
+    Value: !GetAtt "IAMRoleForWebEC2.Arn"
+    Export:
+      Name: !Sub "${Project}-${Environment}-ec2-iam-role-arn"
+
+  IAMInstanceProfileForIAMRoleForEC2Permission:
+    Value: !Ref "IAMInstanceProfileForIAMRoleForEC2"
+    Export:
+      Name: !Sub "${Project}-${Environment}-ec2-iam-profile"
+
+  IAMRoleForVPCFlowLogArn:
+    Value: !GetAtt "IAMRoleForVPCFlowLog.Arn"
+    Export:
+      Name: !Sub "${Project}-${Environment}-vpc-flow-log-role-arn"
+
+

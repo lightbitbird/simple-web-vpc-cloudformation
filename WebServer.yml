@@ -230,6 +230,7 @@ Resources:
           - "AWSInstanceType2Arch"
           - !Ref "InstanceType"
           - "Arch"
+      IamInstanceProfile: !Sub "${Project}-${Environment}-ec2-iam-profile"
       BlockDeviceMappings:
         - DeviceName: "/dev/xvda"
           Ebs:
@@ -249,6 +250,25 @@ Resources:
         - Key: "Name"
           Value: !Sub "${Project}-${Environment}-web"
 
+  # VPC Flow Log
+  VPCFlowLog:
+    Type: "AWS::EC2::FlowLog"
+    Properties:
+      DeliverLogsPermissionArn:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-flow-log-role-arn"
+      LogDestinationType: "cloud-watch-logs"
+      LogGroupName: !Ref "CloudWatchLogsGroupForVPCFlowLog"
+      ResourceId:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-id"
+      ResourceType: "VPC"
+      TrafficType: "ALL"
+
+  CloudWatchLogsGroupForVPCFlowLog:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub "${Project}-${Environment}-vpc-flowlogs"
+      RetentionInDays: 14
+
   BastionInstance:
     Type: "AWS::EC2::Instance"
     Properties:
@@ -259,6 +279,8 @@ Resources:
           - "AWSInstanceType2Arch"
           - !Ref "InstanceType"
           - "Arch"
+      IamInstanceProfile:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-ec2-iam-profile"
       BlockDeviceMappings:
         - DeviceName: "/dev/xvda"
           Ebs:
@@ -293,3 +315,4 @@ Outputs:
     Value: !Ref "BastionSecurityGroup"
     Export:
       Name: "bastion-sg"
+
