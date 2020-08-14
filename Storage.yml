@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Infrastructure setup"
+
+Parameters:
+  Project:
+    Type: "String"
+    Default: "web"
+  Environment:
+    Type: "String"
+    Default: "dev"
+    AllowedValues:
+      - "dev"
+      - "prod"
+  BucketExpirationInDays:
+    Type: Number
+    Default: 14
+
+
+Resources:
+  VpcFlowLosS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "${Project}-${Environment}-vpc-flow-logs-bucket"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: "AES256"
+      LifecycleConfiguration:
+        Rules:
+          - Id: "ExpirationRule"
+            Status: "Enabled"
+            ExpirationInDays: !Ref "BucketExpirationInDays"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+
+Outputs:
+  VpcFlowLogsS3Bucket:
+    Value: !Ref "VpcFlowLosS3Bucket"
+    Export:
+      Name: !Sub "${Project}-${Environment}-vpc-flow-logs-bucket"
+
+  VpcFlowLogsS3BucketArn:
+    Value: !GetAtt "VpcFlowLosS3Bucket.Arn"
+    Export:
+      Name: !Sub "${Project}-${Environment}-vpc-flow-logs-bucket-arn"
+

@@ -34,34 +34,60 @@ Resources:
         - Key: "Name"
           Value: !Sub "${Project}-${Environment}-ec2-iam-role"
 
-  IAMRoleForVPCFlowLog:
-    Type: "AWS::IAM::Role"
+  VPCFlowLogS3BucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
     Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+      Bucket:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-flow-logs-bucket"
+      PolicyDocument:
+        # BucketPolicy
+        Version: '2012-10-17'
         Statement:
-          - Effect: "Allow"
+          - Sid: "AWSLogDeliveryAclCheck"
+            Effect: "Allow"
             Principal:
-              Service: "vpc-flow-logs.amazonaws.com"
-            Action: "sts:AssumeRole"
-      Description: "A role required for VPC FlowLog"
-      Policies:
-        - PolicyName: !Sub "${Project}-${Environment}-AWSVPCFlowLogCloudWatchAccess-${AWS::Region}"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: "Allow"
-                Action:
-                  - "logs:CreateLogGroup"
-                  - "logs:CreateLogStream"
-                  - "logs:PutLogEvents"
-                  - "logs:DescribeLogGroups"
-                  - "logs:DescribeLogStreams"
-                Resource: "*"
-      RoleName: !Sub "${Project}-${Environment}-AWSVPCFlowLogRole-${AWS::Region}"
-      Tags:
-        - Key: "Name"
-          Value: !Sub "${Project}-${Environment}-vpc-flow-log-role"
+              Service: "delivery.logs.amazonaws.com"
+            Action: "s3:GetBucketAcl"
+            Resource: !Sub "arn:aws:s3:::${Project}-${Environment}-vpc-flow-logs-bucket"
+          - Sid: "AWSLogDeliveryWrite"
+            Effect: "Allow"
+            Principal:
+              Service: "delivery.logs.amazonaws.com"
+            Action: "s3:PutObject"
+            Resource:
+              - !Sub "arn:aws:s3:::${Project}-${Environment}-vpc-flow-logs-bucket/AWSLogs/*"
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: "bucket-owner-full-control"
+
+#  IAMRoleForVPCFlowLog:
+#    Type: "AWS::IAM::Role"
+#    Properties:
+#      AssumeRolePolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
+#          - Effect: "Allow"
+#            Principal:
+#              Service: "vpc-flow-logs.amazonaws.com"
+#            Action: "sts:AssumeRole"
+#      Description: "A role required for VPC FlowLog"
+#      Policies:
+#        - PolicyName: !Sub "${Project}-${Environment}-AWSVPCFlowLogCloudWatchAccess-${AWS::Region}"
+#          PolicyDocument:
+#            Version: "2012-10-17"
+#            Statement:
+#              - Effect: "Allow"
+#                Action:
+#                  - "logs:CreateLogGroup"
+#                  - "logs:CreateLogStream"
+#                  - "logs:PutLogEvents"
+#                  - "logs:DescribeLogGroups"
+#                  - "logs:DescribeLogStreams"
+#                Resource: "*"
+#      RoleName: !Sub "${Project}-${Environment}-AWSVPCFlowLogRole-${AWS::Region}"
+#      Tags:
+#        - Key: "Name"
+#          Value: !Sub "${Project}-${Environment}-vpc-flow-logs-role"
 
   # InstanceProfile
   IAMInstanceProfileForIAMRoleForEC2:
@@ -82,9 +108,14 @@ Outputs:
     Export:
       Name: !Sub "${Project}-${Environment}-ec2-iam-profile"
 
-  IAMRoleForVPCFlowLogArn:
-    Value: !GetAtt "IAMRoleForVPCFlowLog.Arn"
+  VPCFlowLogS3BucketPolicy:
+    Value: !Ref "VPCFlowLogS3BucketPolicy"
     Export:
-      Name: !Sub "${Project}-${Environment}-vpc-flow-log-role-arn"
+      Name: !Sub "${Project}-${Environment}-vpc-flow-logs-bucket-policy"
+
+#  IAMRoleForVPCFlowLogArn:
+#    Value: !GetAtt "IAMRoleForVPCFlowLog.Arn"
+#    Export:
+#      Name: !Sub "${Project}-${Environment}-vpc-flow-logs-role-arn"
 
 

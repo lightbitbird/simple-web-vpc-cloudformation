@@ -54,7 +54,7 @@ Resources:
       InstanceTenancy: "default"
       Tags:
         - Key: "Name"
-          Value: !Sub "${Project}-${Environment}-vpc-id"
+          Value: !Sub "${Project}-${Environment}-vpc"
 
   PublicSubnetOne:
     Type: "AWS::EC2::Subnet"
@@ -290,6 +290,38 @@ Resources:
       RouteTableId: !Ref "PrivateRouteTable"
       DestinationCidrBlock: "0.0.0.0/0"
       NatGatewayId: !Ref "NatGatewayThree"
+
+  # VPC Flow Log for S3
+  VPCFlowLogForS3:
+    Type: "AWS::EC2::FlowLog"
+    Properties:
+      LogDestinationType: "s3"
+      LogDestination:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-flow-logs-bucket-arn"
+      ResourceId: !Ref "VPC"
+      ResourceType: "VPC"
+      TrafficType: "ALL"
+
+  # VPC Flow Log for CloudWatchLogs
+#  VPCFlowLogForCLoudWatchLogs:
+#    Type: "AWS::EC2::FlowLog"
+#    Properties:
+#      # Set this for CloudWatchLogs
+#      DeliverLogsPermissionArn:
+#        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-flow-logs-role-arn"
+#      LogDestinationType: "cloud-watch-logs"
+#      LogDestination:
+#        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-flow-logs-bucket-arn"
+#      LogGroupName: !Ref "CloudWatchLogsGroupForVPCFlowLog"
+#      ResourceId: !Ref "VPC"
+#      ResourceType: "VPC"
+#      TrafficType: "ALL"
+#
+#  CloudWatchLogsGroupForVPCFlowLog:
+#    Type: "AWS::Logs::LogGroup"
+#    Properties:
+#      LogGroupName: !Sub "${Project}-${Environment}-vpc-flow-logs"
+#      RetentionInDays: 14
 
 
 Outputs:
