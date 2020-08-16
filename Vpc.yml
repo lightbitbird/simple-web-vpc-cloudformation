@@ -56,6 +56,8 @@ Resources:
         - Key: "Name"
           Value: !Sub "${Project}-${Environment}-vpc"
 
+
+  # public Subnets ------------------------
   PublicSubnetOne:
     Type: "AWS::EC2::Subnet"
     Properties:
@@ -105,6 +107,10 @@ Resources:
         - Key: "Name"
           Value: !Sub "${Project}-${Environment}-pub-3"
 
+  # public Subnets ------------------------
+
+
+  # Route Tables for public Subnets ------------------------
   PublicRouteTable:
     Type: "AWS::EC2::RouteTable"
     Properties:
@@ -131,7 +137,10 @@ Resources:
       RouteTableId: !Ref "PublicRouteTable"
       SubnetId: !Ref "PublicSubnetThree"
 
+  # Route Tables for public Subnets ------------------------
 
+
+  # Private Subnets ------------------------
   PrivateSubnetOne:
     Type: "AWS::EC2::Subnet"
     Properties:
@@ -180,7 +189,27 @@ Resources:
         - Key: "Name"
           Value: !Sub "${Project}-${Environment}-prv-3"
 
-  PrivateRouteTable:
+  # Private Subnets ------------------------
+
+
+  # Route Tables for Private Subnets ------------------------
+  PrivateRouteTableOne:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref "VPC"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-prv-rtb"
+
+  PrivateRouteTableTwo:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref "VPC"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-prv-rtb"
+
+  PrivateRouteTableThree:
     Type: "AWS::EC2::RouteTable"
     Properties:
       VpcId: !Ref "VPC"
@@ -191,19 +220,19 @@ Resources:
   PrivateSubnetOneRouteTableAssociation:
     Type: "AWS::EC2::SubnetRouteTableAssociation"
     Properties:
-      RouteTableId: !Ref "PrivateRouteTable"
+      RouteTableId: !Ref "PrivateRouteTableOne"
       SubnetId: !Ref "PrivateSubnetOne"
 
   PrivateSubnetTwoRouteTableAssociation:
     Type: "AWS::EC2::SubnetRouteTableAssociation"
     Properties:
-      RouteTableId: !Ref "PrivateRouteTable"
+      RouteTableId: !Ref "PrivateRouteTableTwo"
       SubnetId: !Ref "PrivateSubnetTwo"
 
   PrivateSubnetThreeRouteTableAssociation:
     Type: "AWS::EC2::SubnetRouteTableAssociation"
     Properties:
-      RouteTableId: !Ref "PrivateRouteTable"
+      RouteTableId: !Ref "PrivateRouteTableThree"
       SubnetId: !Ref "PrivateSubnetThree"
 
 
@@ -227,11 +256,14 @@ Resources:
       DestinationCidrBlock: "0.0.0.0/0"
       GatewayId: !Ref "VPCInternetGateway"
 
+  # Route Tables for Private Subnets ------------------------
 
+
+  # NatGateway AND EIP -------------------------------
   NatGatewayEIPOne:
     Type: "AWS::EC2::EIP"
     Properties:
-      Domain: "vpd"
+      Domain: "vpc"
 
   NatGatewayOne:
     Type: "AWS::EC2::NatGateway"
@@ -245,14 +277,14 @@ Resources:
   PrivateRouteToNatGatewayOne:
     Type: "AWS::EC2::Route"
     Properties:
-      RouteTableId: !Ref "PrivateRouteTable"
+      RouteTableId: !Ref "PrivateRouteTableOne"
       DestinationCidrBlock: "0.0.0.0/0"
       NatGatewayId: !Ref "NatGatewayOne"
 
   NatGatewayEIPTwo:
     Type: "AWS::EC2::EIP"
     Properties:
-      Domain: "vpd"
+      Domain: "vpc"
 
   NatGatewayTwo:
     Type: "AWS::EC2::NatGateway"
@@ -266,14 +298,14 @@ Resources:
   PrivateRouteToNatGatewayTwo:
     Type: "AWS::EC2::Route"
     Properties:
-      RouteTableId: !Ref "PrivateRouteTable"
+      RouteTableId: !Ref "PrivateRouteTableTwo"
       DestinationCidrBlock: "0.0.0.0/0"
       NatGatewayId: !Ref "NatGatewayTwo"
 
   NatGatewayEIPThree:
     Type: "AWS::EC2::EIP"
     Properties:
-      Domain: "vpd"
+      Domain: "vpc"
 
   NatGatewayThree:
     Type: "AWS::EC2::NatGateway"
@@ -287,9 +319,10 @@ Resources:
   PrivateRouteToNatGatewayThree:
     Type: "AWS::EC2::Route"
     Properties:
-      RouteTableId: !Ref "PrivateRouteTable"
+      RouteTableId: !Ref "PrivateRouteTableThree"
       DestinationCidrBlock: "0.0.0.0/0"
       NatGatewayId: !Ref "NatGatewayThree"
+  # NatGateway AND EIP -------------------------------
 
   # VPC Flow Log for S3
   VPCFlowLogForS3:
@@ -323,6 +356,24 @@ Resources:
 #      LogGroupName: !Sub "${Project}-${Environment}-vpc-flow-logs"
 #      RetentionInDays: 14
 
+  # Security Group for VPC ------------------------
+  VPCSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Security Group for VPC"
+      GroupName: !Sub "${Project}-${Environment}-vpc-sg"
+      VpcId: !Ref "VPC"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-vpc-sg"
+
+  VPCSecurityGroupEgress:
+    Type: "AWS::EC2::SecurityGroupEgress"
+    Properties:
+      GroupId: !GetAtt "VPCSecurityGroup.GroupId"
+      CidrIp: "127.0.0.1/32"
+      IpProtocol: "-1"
+  # Security Group for VPC ------------------------
 
 Outputs:
   VpcId:
@@ -369,3 +420,8 @@ Outputs:
     Value: !FindInMap [ "Subnets",  "EnabledAccessCidrBlock", "Ipv4CidrBlock"]
     Export:
       Name: "access-cidr-block"
+
+  VPCSecurityGroupName:
+    Value: !Ref "VPCSecurityGroup"
+    Export:
+      Name: !Sub "${Project}-${Environment}-vpc-sg"

@@ -1,0 +1,215 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description:
+  RDS for  MySQL Create
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "Project and Environment Name"
+        Parameters:
+          - Project
+          - Environment
+      - Label:
+          default: "RDS Configuration"
+        Parameters:
+          - DBInstanceName
+          - MajorVersion
+          - MinorVersion
+          - DBInstanceClass
+          - DBInstanceStorageSize
+          - DBInstanceStorageType
+          - DBName
+          - DBMasterUserName
+          - DBPassword
+          - MultiAZ
+    ParameterLabels:
+      DBInstanceName:
+        default: "DBInstanceName"
+      MySQLMajorVersion:
+        default: "MySQLMajorVersion"
+      MySQLMinorVersion:
+        default: "MySQLMinorVersion"
+      DBInstanceClass:
+        default: "DBInstanceClass"
+      DBInstanceStorageSize:
+        default: "DBInstanceStorageSize"
+      DBInstanceStorageType:
+        default: "DBInstanceStorageType"
+      DBName:
+        default: "DBName"
+      DBMasterUserName:
+        default: "DBUserName"
+      DBPassword:
+        default: "DBPassword"
+      MultiAZ:
+        default: "MultiAZ"
+
+Parameters:
+  Project:
+    Type: "String"
+    Default: "web"
+  Environment:
+    Type: "String"
+    Default: "dev"
+
+  DBInstanceName:
+    Type: "String"
+    Default: "web-rds"
+  MajorVersion:
+    Type: "String"
+    Default: "5.7"
+    AllowedValues: [ "5.5", "5.6", "5.7", "8.0" ]
+  MinorVersion:
+    Type: "String"
+    Default: "22"
+  DBInstanceClass:
+    Type: "String"
+    Default: "db.m5.large"
+    AllowedValues:
+      - "db.m4.large"
+      - "db.m4.xlarge"
+      - "db.m4.2xlarge"
+      - "db.m4.4xlarge"
+      - "db..m4.10xlarge"
+      - "db.m4.16xlarge"
+      - "db.m5.large"
+      - "db.m5.xlarge"
+      - "db.m5.2xlarge"
+      - "db.m5.4xlarge"
+      - "db.m5.8xlarge"
+      - "db.m5.12xlarge"
+      - "db.m5.16xlarge"
+      - "db.m5.24xlarge"
+      - "db.m6.large"
+      - "db.m6.xlarge"
+      - "db.m6.2xlarge"
+      - "db.m6.4xlarge"
+      - "db.m6.8xlarge"
+      - "db.m6.12xlarge"
+      - "db.m6.16xlarge"
+  DBInstanceStorageSize:
+    Type: "String"
+    Default: "30"
+  DBInstanceStorageType:
+    Type: "String"
+    Default: "gp2"
+  DBName:
+    Type: "String"
+    Default: "rds_db"
+  DBMasterUserName:
+    Type: "String"
+    Default: "admin"
+    NoEcho: true
+    MinLength: 1
+    MaxLength: 16
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription: "must begin with a letter and contain only alphanumeric characters."
+  DBPassword:
+    Default: "password"
+    NoEcho: true
+    Type: "String"
+    MinLength: 8
+    MaxLength: 41
+    AllowedPattern: "[a-zA-Z0-9]*"
+    ConstraintDescription: "must contain only alphanumeric characters."
+  MultiAZ:
+    Default: "false"
+    Type: "String"
+    AllowedValues: [ "true", "false" ]
+
+Resources:
+  #  DBInstance
+  DBInstance:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      DBInstanceIdentifier: !Sub "${Project}-${Environment}-${DBInstanceName}"
+      Engine: "MySQL"
+      EngineVersion: !Sub "${MajorVersion}.${MinorVersion}"
+      DBInstanceClass: !Ref "DBInstanceClass"
+      AllocatedStorage: !Ref "DBInstanceStorageSize"
+      StorageType: !Ref "DBInstanceStorageType"
+      DBName: !Ref "DBName"
+      MasterUsername: !Ref "DBMasterUserName"
+      MasterUserPassword: !Ref "DBPassword"
+      DBSubnetGroupName: !Ref "DBSubnetGroup"
+      PubliclyAccessible: false
+      MultiAZ: !Ref "MultiAZ"
+      PreferredBackupWindow: "18:00-18:30"
+      PreferredMaintenanceWindow: "sat:19:00-sat:19:30"
+      AutoMinorVersionUpgrade: false
+      DBParameterGroupName: !Ref "DBParameterGroup"
+      VPCSecurityGroups:
+        - !Ref "RDSSecurityGroup"
+#        - Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-sg"
+      CopyTagsToSnapshot: false
+      BackupRetentionPeriod: 7
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-${DBInstanceName}"
+#      DeletionProtection: true
+
+  #  DBParameterGroup
+  DBParameterGroup:
+    Type: "AWS::RDS::DBParameterGroup"
+    Properties:
+      Family: !Sub "mysql${MajorVersion}"
+      Description: !Sub "${Project}-${Environment}-${DBInstanceName}-param"
+
+  #  DBSubnetGroup
+  DBSubnetGroup:
+    Type: "AWS::RDS::DBSubnetGroup"
+    Properties:
+      DBSubnetGroupName: !Sub "${Project}-${Environment}-${DBInstanceName}-subnet"
+      DBSubnetGroupDescription: "-"
+      SubnetIds:
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-1-id"
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-2-id"
+
+  # SecurityGroup for RDS (MySQL)
+  RDSSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Security Group for RDS"
+      GroupName: !Sub "${Project}-${Environment}-${DBInstanceName}-sg"
+      VpcId:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-id"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-rds-sg"
+
+  # Rule
+  RDSSecurityGroupDBPortIngress:
+    Type: "AWS::EC2::SecurityGroupIngress"
+    Properties:
+      GroupId: !GetAtt "RDSSecurityGroup.GroupId"
+      IpProtocol: "tcp"
+      FromPort: 3306
+      ToPort: 3306
+      SourceSecurityGroupId:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-sg"
+
+  RDSSecurityGroupEgress:
+    Type: "AWS::EC2::SecurityGroupEgress"
+    Properties:
+      GroupId: !GetAtt "RDSSecurityGroup.GroupId"
+      CidrIp: "172.0.0.1/32"
+      IpProtocol: "-1"
+
+
+Outputs:
+  #DBInstance
+  DBInstanceID:
+    Value: !Ref "DBInstance"
+    Export:
+      Name: !Sub "${Project}-${Environment}-${DBInstanceName}-id"
+
+  DBInstanceEndpoint:
+    Value: !GetAtt "DBInstance.Endpoint.Address"
+    Export:
+      Name: !Sub "${Project}-${Environment}-${DBInstanceName}-endpoint"
+
+  DBName:
+    Value: !Ref "DBName"
+    Export:
+      Name: !Sub "${Project}-${Environment}-${DBInstanceName}-dbname"

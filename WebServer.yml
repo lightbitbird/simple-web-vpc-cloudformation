@@ -118,7 +118,7 @@ Resources:
     Type: "AWS::EC2::SecurityGroupEgress"
     Properties:
       GroupId: !GetAtt "WebSecurityGroup.GroupId"
-      CidrIp: "172.0.0.1/32"
+      CidrIp: "127.0.0.1/32"
       IpProtocol: "-1"
 
   WebSGEgressHttp:
@@ -244,7 +244,9 @@ Resources:
       EbsOptimized: true
       InstanceType: !Ref "InstanceType"
       Monitoring: true
-      SecurityGroupIds: [ !Ref "WebSecurityGroup" ]
+      SecurityGroupIds:
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-sg"
+        - !Ref "WebSecurityGroup"
 #      DisableApiTermination: true
       KeyName: !Ref "KeyPair"
       Tags:
@@ -291,10 +293,10 @@ Outputs:
   WebSG:
     Value: !Ref "BastionSecurityGroup"
     Export:
-      Name: "web-sg"
+      Name: !Sub "${Project}-${Environment}-web-sg"
 
   BastionSG:
     Value: !Ref "BastionSecurityGroup"
     Export:
-      Name: "bastion-sg"
+      Name: !Sub "${Project}-${Environment}-bastion-sg"
 
