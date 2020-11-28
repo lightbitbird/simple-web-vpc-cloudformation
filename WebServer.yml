@@ -76,42 +76,12 @@ Resources:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       GroupDescription: "Security Group for EC2 Instance"
-      GroupName: !Sub "${Project}-${Environment}-web-sg"
+      GroupName: !Sub "${Project}-${Environment}-1-sg"
       VpcId:
         Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-id"
       Tags:
         - Key: "Name"
-          Value: !Sub "${Project}-${Environment}-web-sg"
-
-  WebSGIngressSSH:
-    Type: "AWS::EC2::SecurityGroupIngress"
-    Properties:
-      GroupId: !GetAtt "WebSecurityGroup.GroupId"
-      CidrIp:
-        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-cidr"
-      IpProtocol: "tcp"
-      FromPort: 22
-      ToPort: 22
-
-  WebSGIngressHttp:
-    Type: "AWS::EC2::SecurityGroupIngress"
-    Properties:
-      GroupId: !GetAtt "WebSecurityGroup.GroupId"
-      CidrIp:
-        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-cidr"
-      IpProtocol: "tcp"
-      FromPort: 80
-      ToPort: 80
-
-  WebSGIngressHttps:
-    Type: "AWS::EC2::SecurityGroupIngress"
-    Properties:
-      GroupId: !GetAtt "WebSecurityGroup.GroupId"
-      CidrIp:
-        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-cidr"
-      IpProtocol: "tcp"
-      FromPort: 443
-      ToPort: 443
+          Value: !Sub "${Project}-${Environment}-1-sg"
 
   # Disable the default egress for sg
   WebSGEgressDeny:
@@ -120,24 +90,6 @@ Resources:
       GroupId: !GetAtt "WebSecurityGroup.GroupId"
       CidrIp: "127.0.0.1/32"
       IpProtocol: "-1"
-
-  WebSGEgressHttp:
-    Type: "AWS::EC2::SecurityGroupEgress"
-    Properties:
-      GroupId: !GetAtt "WebSecurityGroup.GroupId"
-      CidrIp: "0.0.0.0/0"
-      IpProtocol: "tcp"
-      FromPort: 80
-      ToPort: 80
-
-  WebSGEgressHttps:
-    Type: "AWS::EC2::SecurityGroupEgress"
-    Properties:
-      GroupId: !GetAtt "WebSecurityGroup.GroupId"
-      CidrIp: "0.0.0.0/0"
-      IpProtocol: "tcp"
-      FromPort: 443
-      ToPort: 443
 
 
   # Bastion Security Group
@@ -187,15 +139,14 @@ Resources:
     Type: "AWS::EC2::SecurityGroupEgress"
     Properties:
       GroupId: !GetAtt "BastionSecurityGroup.GroupId"
-      CidrIp: "172.0.0.1/32"
+      CidrIp: "127.0.0.1/32"
       IpProtocol: "-1"
 
   BastionSGEgressSSH:
     Type: "AWS::EC2::SecurityGroupEgress"
     Properties:
       GroupId: !GetAtt "BastionSecurityGroup.GroupId"
-      CidrIp:
-        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-cidr"
+      CidrIp: "0.0.0.0/0"
       IpProtocol: "tcp"
       FromPort: 22
       ToPort: 22
@@ -204,8 +155,7 @@ Resources:
     Type: "AWS::EC2::SecurityGroupEgress"
     Properties:
       GroupId: !GetAtt "BastionSecurityGroup.GroupId"
-      CidrIp:
-        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-cidr"
+      CidrIp: "0.0.0.0/0"
       IpProtocol: "tcp"
       FromPort: 80
       ToPort: 80
@@ -214,11 +164,11 @@ Resources:
     Type: "AWS::EC2::SecurityGroupEgress"
     Properties:
       GroupId: !GetAtt "BastionSecurityGroup.GroupId"
-      CidrIp:
-        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-cidr"
+      CidrIp: "0.0.0.0/0"
       IpProtocol: "tcp"
       FromPort: 443
       ToPort: 443
+
 
   WebInstance:
     Type: "AWS::EC2::Instance"
@@ -247,11 +197,11 @@ Resources:
       SecurityGroupIds:
         - Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-sg"
         - !Ref "WebSecurityGroup"
-#      DisableApiTermination: true
+      DisableApiTermination: true
       KeyName: !Ref "KeyPair"
       Tags:
         - Key: "Name"
-          Value: !Sub "${Project}-${Environment}-web"
+          Value: !Sub "${Project}-${Environment}-1"
 
   BastionInstance:
     Type: "AWS::EC2::Instance"
@@ -282,7 +232,7 @@ Resources:
           GroupSet:
             - !Ref "BastionSecurityGroup"
       Monitoring: true
-#      DisableApiTermination: true
+      DisableApiTermination: true
       KeyName: !Ref "KeyPair"
       Tags:
         - Key: "Name"
@@ -291,9 +241,9 @@ Resources:
 
 Outputs:
   WebSG:
-    Value: !Ref "BastionSecurityGroup"
+    Value: !Ref "WebSecurityGroup"
     Export:
-      Name: !Sub "${Project}-${Environment}-web-sg"
+      Name: !Sub "${Project}-${Environment}-1-sg"
 
   BastionSG:
     Value: !Ref "BastionSecurityGroup"

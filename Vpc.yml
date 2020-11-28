@@ -199,7 +199,7 @@ Resources:
       VpcId: !Ref "VPC"
       Tags:
         - Key: "Name"
-          Value: !Sub "${Project}-${Environment}-prv-rtb"
+          Value: !Sub "${Project}-${Environment}-prv-rtb-1"
 
   PrivateRouteTableTwo:
     Type: "AWS::EC2::RouteTable"
@@ -207,7 +207,7 @@ Resources:
       VpcId: !Ref "VPC"
       Tags:
         - Key: "Name"
-          Value: !Sub "${Project}-${Environment}-prv-rtb"
+          Value: !Sub "${Project}-${Environment}-prv-rtb-2"
 
   PrivateRouteTableThree:
     Type: "AWS::EC2::RouteTable"
@@ -215,7 +215,7 @@ Resources:
       VpcId: !Ref "VPC"
       Tags:
         - Key: "Name"
-          Value: !Sub "${Project}-${Environment}-prv-rtb"
+          Value: !Sub "${Project}-${Environment}-prv-rtb-3"
 
   PrivateSubnetOneRouteTableAssociation:
     Type: "AWS::EC2::SubnetRouteTableAssociation"
@@ -367,13 +367,21 @@ Resources:
         - Key: "Name"
           Value: !Sub "${Project}-${Environment}-vpc-sg"
 
-  VPCSecurityGroupEgress:
+  VPCSecurityGroupIngressSelf:
+    Type: "AWS::EC2::SecurityGroupIngress"
+    Properties:
+      GroupId: !GetAtt "VPCSecurityGroup.GroupId"
+      CidrIp: !GetAtt "VPC.CidrBlock"
+      IpProtocol: "-1"
+
+  VPCSecurityGroupEgressSelf:
     Type: "AWS::EC2::SecurityGroupEgress"
     Properties:
       GroupId: !GetAtt "VPCSecurityGroup.GroupId"
-      CidrIp: "127.0.0.1/32"
+      CidrIp: !GetAtt "VPC.CidrBlock"
       IpProtocol: "-1"
   # Security Group for VPC ------------------------
+
 
 Outputs:
   VpcId:
@@ -425,3 +433,19 @@ Outputs:
     Value: !Ref "VPCSecurityGroup"
     Export:
       Name: !Sub "${Project}-${Environment}-vpc-sg"
+
+  PrivateRouteTableOne:
+    Value: !Ref "PrivateRouteTableOne"
+    Export:
+      Name: !Sub "${Project}-${Environment}-prv-rtb-1-id"
+
+  PrivateRouteTableTwo:
+    Value: !Ref "PrivateRouteTableTwo"
+    Export:
+      Name: !Sub "${Project}-${Environment}-prv-rtb-2-id"
+
+  PrivateRouteTableThree:
+    Value: !Ref "PrivateRouteTableThree"
+    Export:
+      Name: !Sub "${Project}-${Environment}-prv-rtb-3-id"
+

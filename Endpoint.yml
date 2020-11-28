@@ -1,0 +1,176 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Infrastructure setup"
+
+Parameters:
+  Project:
+    Type: "String"
+    Default: "web"
+  Environment:
+    Type: "String"
+    Default: "dev"
+    AllowedValues:
+      - "dev"
+      - "prod"
+
+
+Mappings:
+  Regions:
+    ap-northeast-1:
+      RegionName: "Tokyo Region"
+    us-east-1:
+      RegionName: "Virginia Region"
+
+
+Resources:
+  # Security Group for VPC Endpoint
+  VPCEndpointCSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Security Group for VPC Endpoint"
+      GroupName: !Sub "${Project}-${Environment}-vpce-sg"
+      VpcId:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-id"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${Project}-${Environment}-vpce-sg"
+
+  # VPC Endpoint SecurityGroup from HTTPS VPC
+  VPCEndpointSGIngressHttpsVPC:
+    Type: "AWS::EC2::SecurityGroupIngress"
+    Properties:
+      GroupId: !GetAtt "VPCEndpointCSecurityGroup.GroupId"
+      SourceSecurityGroupId:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-sg"
+      IpProtocol: "tcp"
+      FromPort: 443
+      ToPort: 443
+
+  # VPC SecurityGroup from VPC Endpoint
+  VPCSGEgressVPCEndpoint:
+    Type: "AWS::EC2::SecurityGroupEgress"
+    Properties:
+      GroupId:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-sg"
+      DestinationSecurityGroupId: !GetAtt "VPCEndpointCSecurityGroup.GroupId"
+      IpProtocol: "tcp"
+      FromPort: 443
+      ToPort: 443
+
+
+  # Logs VPC Endpoint
+  LogsEndpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      ServiceName: !Join
+        - ""
+        - - "com.amazonaws."
+          - !Ref "AWS::Region"
+          - ".logs"
+      SubnetIds:
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-1-id"
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-2-id"
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-3-id"
+      VpcId:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-id"
+      VpcEndpointType: "Interface"
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt "VPCEndpointCSecurityGroup.GroupId"
+
+  # Monitoring VPC Endpoint
+  MonitoringEndpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      ServiceName: !Join
+        - ""
+        - - "com.amazonaws."
+          - !Ref "AWS::Region"
+          - ".monitoring"
+      SubnetIds:
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-1-id"
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-2-id"
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-3-id"
+      VpcId:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-id"
+      VpcEndpointType: "Interface"
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt "VPCEndpointCSecurityGroup.GroupId"
+
+  # SSM VPC Endpoint
+  SsmEndpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      ServiceName: !Join
+        - ""
+        - - "com.amazonaws."
+          - !Ref "AWS::Region"
+          - ".ssm"
+      SubnetIds:
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-1-id"
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-2-id"
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-3-id"
+      VpcId:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-id"
+      VpcEndpointType: "Interface"
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt "VPCEndpointCSecurityGroup.GroupId"
+
+  # EC2 Messages VPC Endpoint
+  EC2MEssagesEndpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      ServiceName: !Join
+        - ""
+        - - "com.amazonaws."
+          - !Ref "AWS::Region"
+          - ".ec2messages"
+      SubnetIds:
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-1-id"
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-2-id"
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-3-id"
+      VpcId:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-id"
+      VpcEndpointType: "Interface"
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt "VPCEndpointCSecurityGroup.GroupId"
+
+  # EC2 VPC Endpoint
+  EC2Endpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      ServiceName: !Join
+        - ""
+        - - "com.amazonaws."
+          - !Ref "AWS::Region"
+          - ".ec2"
+      SubnetIds:
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-1-id"
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-2-id"
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-subnet-3-id"
+      VpcId:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-id"
+      VpcEndpointType: "Interface"
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt "VPCEndpointCSecurityGroup.GroupId"
+
+  # S3 VPC Endpoint
+  S3Endpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      ServiceName: !Join
+        - ""
+        - - "com.amazonaws."
+          - !Ref "AWS::Region"
+          - ".s3"
+      RouteTableIds:
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-rtb-1-id"
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-rtb-2-id"
+        - Fn::ImportValue: !Sub "${Project}-${Environment}-prv-rtb-3-id"
+      VpcId:
+        Fn::ImportValue: !Sub "${Project}-${Environment}-vpc-id"
+      VpcEndpointType: "Gateway"
+

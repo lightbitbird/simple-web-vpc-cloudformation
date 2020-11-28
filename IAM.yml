@@ -30,6 +30,8 @@ Resources:
         - "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
         - "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
         - "arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy"
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        - "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
       RoleName: !Sub "${Project}-${Environment}-AWSEc2Role-${AWS::Region}"
       Tags:
         - Key: "Name"
@@ -118,5 +120,3 @@ Outputs:
 #    Value: !GetAtt "IAMRoleForVPCFlowLog.Arn"
 #    Export:
 #      Name: !Sub "${Project}-${Environment}-vpc-flow-logs-role-arn"
-
-
